@@ -17,7 +17,6 @@ from .models import ClaimMutation
 from django.utils.translation import gettext as _
 from graphene_django.filter import DjangoFilterConnectionField
 import ast
-from django.core.exceptions import PermissionDenied
 
 # We do need all queries and mutations in the namespace here.
 from .gql_queries import *  # lgtm [py/polluting-import]

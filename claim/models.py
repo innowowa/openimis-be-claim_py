@@ -15,33 +15,27 @@ from policy import models as policy_models
 from product import models as product_models
 from django.apps import apps
 from django.utils import timezone as django_tz
+import numpy as np
 
 core_config = apps.get_app_config('core')
 
 
 class ClaimAdmin(core_models.VersionedModel):
     id = models.AutoField(db_column='ClaimAdminId', primary_key=True)
-    uuid = models.CharField(db_column='ClaimAdminUUID',
-                            max_length=36, default=uuid.uuid4, unique=True)
+    uuid = models.CharField(db_column='ClaimAdminUUID', max_length=36, default=uuid.uuid4, unique=True)
 
     code = models.CharField(db_column='ClaimAdminCode', max_length=50,
                             blank=True, null=True)
-    last_name = models.CharField(
-        db_column='LastName', max_length=100, blank=True, null=True)
-    other_names = models.CharField(
-        db_column='OtherNames', max_length=100, blank=True, null=True)
+    last_name = models.CharField(db_column='LastName', max_length=100, blank=True, null=True)
+    other_names = models.CharField(db_column='OtherNames', max_length=100, blank=True, null=True)
     dob = models.DateField(db_column='DOB', blank=True, null=True)
-    email_id = models.CharField(
-        db_column='EmailId', max_length=200, blank=True, null=True)
-    phone = models.CharField(
-        db_column='Phone', max_length=50, blank=True, null=True)
+    email_id = models.CharField(db_column='EmailId', max_length=200, blank=True, null=True)
+    phone = models.CharField(db_column='Phone', max_length=50, blank=True, null=True)
     health_facility = models.ForeignKey(
         location_models.HealthFacility, models.DO_NOTHING, db_column='HFId', blank=True, null=True)
-    has_login = models.BooleanField(
-        db_column='HasLogin', blank=True, null=True)
+    has_login = models.BooleanField(db_column='HasLogin', blank=True, null=True)
 
-    audit_user_id = models.IntegerField(
-        db_column='AuditUserId', blank=True, null=True)
+    audit_user_id = models.IntegerField(db_column='AuditUserId', blank=True, null=True)
     # row_id = models.BinaryField(db_column='RowId', blank=True, null=True)
 
     def __str__(self):
@@ -93,8 +87,7 @@ class ClaimAdmin(core_models.VersionedModel):
         """
         district = self.health_facility.location
         all_allowed_uuids = [district.parent.uuid, district.uuid]
-        child_locations = location_models.Location.objects.filter(
-            parent=district).values_list('uuid', flat=True)
+        child_locations = location_models.Location.objects.filter(parent=district).values_list('uuid', flat=True)
         while child_locations:
             all_allowed_uuids.extend(child_locations)
             child_locations = location_models.Location.objects\
@@ -110,25 +103,17 @@ class ClaimAdmin(core_models.VersionedModel):
 
 class Feedback(core_models.VersionedModel):
     id = models.AutoField(db_column='FeedbackID', primary_key=True)
-    uuid = models.CharField(db_column='FeedbackUUID',
-                            max_length=36, default=uuid.uuid4, unique=True)
+    uuid = models.CharField(db_column='FeedbackUUID', max_length=36, default=uuid.uuid4, unique=True)
     claim = models.OneToOneField(
         "Claim", models.DO_NOTHING, db_column='ClaimID', blank=True, null=True, related_name="+")
-    care_rendered = models.BooleanField(
-        db_column='CareRendered', blank=True, null=True)
-    payment_asked = models.BooleanField(
-        db_column='PaymentAsked', blank=True, null=True)
-    drug_prescribed = models.BooleanField(
-        db_column='DrugPrescribed', blank=True, null=True)
-    drug_received = models.BooleanField(
-        db_column='DrugReceived', blank=True, null=True)
-    asessment = models.SmallIntegerField(
-        db_column='Asessment', blank=True, null=True)
+    care_rendered = models.BooleanField(db_column='CareRendered', blank=True, null=True)
+    payment_asked = models.BooleanField(db_column='PaymentAsked', blank=True, null=True)
+    drug_prescribed = models.BooleanField(db_column='DrugPrescribed', blank=True, null=True)
+    drug_received = models.BooleanField(db_column='DrugReceived', blank=True, null=True)
+    asessment = models.SmallIntegerField(db_column='Asessment', blank=True, null=True)
     # No FK in database (so value may not be an existing officer.id !)
-    officer_id = models.IntegerField(
-        db_column='CHFOfficerCode', blank=True, null=True)
-    feedback_date = fields.DateTimeField(
-        db_column='FeedbackDate', blank=True, null=True)
+    officer_id = models.IntegerField(db_column='CHFOfficerCode', blank=True, null=True)
+    feedback_date = fields.DateTimeField(db_column='FeedbackDate', blank=True, null=True)
     audit_user_id = models.IntegerField(db_column='AuditUserID')
 
     class Meta:
@@ -149,6 +134,7 @@ class Feedback(core_models.VersionedModel):
         return queryset
 
 
+
 signal_claim_rejection = dispatch.Signal(["claim"])
 
 
@@ -165,8 +151,7 @@ class Claim(core_models.VersionedModel, core_models.ExtendableModel):
     date_from = fields.DateField(db_column='DateFrom')
     date_to = fields.DateField(db_column='DateTo', blank=True, null=True)
     status = models.SmallIntegerField(db_column='ClaimStatus')
-    restore = models.ForeignKey(
-        'self', db_column='RestoredClaim', on_delete=models.DO_NOTHING, blank=True, null=True)
+    restore = models.ForeignKey('self', db_column='RestoredClaim', on_delete=models.DO_NOTHING, blank=True, null=True)
     adjuster = models.ForeignKey(
         core_models.InteractiveUser, models.DO_NOTHING,
         db_column='Adjuster', blank=True, null=True)
@@ -259,12 +244,7 @@ class Claim(core_models.VersionedModel, core_models.ExtendableModel):
         db_column='AuditUserIDSubmit', blank=True, null=True)
     audit_user_id_process = models.IntegerField(
         db_column='AuditUserIDProcess', blank=True, null=True)
-    care_type = models.CharField(
-        db_column='CareType', max_length=4, blank=True, null=True)
-    pre_authorization = models.BooleanField(
-        default=False, blank=True, null=True)
-    patient_condition = models.CharField(max_length=2, null=True, blank=True)
-    referral_code = models.CharField(max_length=50, null=True, blank=True)
+    care_type = models.CharField(db_column='CareType', max_length=4, blank=True, null=True)
 
     # row_id = models.BinaryField(db_column='RowID', blank=True, null=True)
 
@@ -336,24 +316,17 @@ class Claim(core_models.VersionedModel, core_models.ExtendableModel):
 
 class FeedbackPrompt(core_models.VersionedModel):
     id = models.AutoField(db_column='FeedbackPromptID', primary_key=True)
-    feedback_prompt_date = fields.DateField(
-        db_column='FeedbackPromptDate', blank=True, null=True)
+    feedback_prompt_date = fields.DateField(db_column='FeedbackPromptDate', blank=True, null=True)
     claim = models.ForeignKey(
         Claim, models.DO_NOTHING, db_column='ClaimID', blank=True, null=True, related_name="+")
     officer = models.ForeignKey(
         core_models.Officer, models.DO_NOTHING, db_column="OfficerID", blank=True, null=True)
-    phone_number = models.CharField(
-        db_column='PhoneNumber', max_length=50, blank=True, null=True)
-    sms_status = models.IntegerField(
-        db_column='SMSStatus', blank=True, null=True)
-    validity_from = fields.DateTimeField(
-        db_column='ValidityFrom', blank=True, null=True)
-    validity_to = fields.DateTimeField(
-        db_column='ValidityTo', blank=True, null=True)
-    legacy_id = models.IntegerField(
-        db_column='LegacyID', blank=True, null=True)
-    audit_user_id = models.IntegerField(
-        db_column='AuditUserID', blank=True, null=True)
+    phone_number = models.CharField(db_column='PhoneNumber', max_length=50, blank=True, null=True)
+    sms_status = models.IntegerField(db_column='SMSStatus', blank=True, null=True)
+    validity_from = fields.DateTimeField(db_column='ValidityFrom', blank=True, null=True)
+    validity_to = fields.DateTimeField(db_column='ValidityTo', blank=True, null=True)
+    legacy_id = models.IntegerField(db_column='LegacyID', blank=True, null=True)
+    audit_user_id = models.IntegerField(db_column='AuditUserID', blank=True, null=True)
 
     class Meta:
         managed = True
@@ -374,9 +347,9 @@ class FeedbackPrompt(core_models.VersionedModel):
         return queryset
 
 
+
 class ClaimAttachmentsCount(models.Model):
-    claim = models.OneToOneField(
-        Claim, primary_key=True, related_name='attachments_count', on_delete=models.DO_NOTHING)
+    claim = models.OneToOneField(Claim, primary_key=True, related_name='attachments_count', on_delete=models.DO_NOTHING)
     value = models.IntegerField(db_column='attachments_count')
 
     class Meta:
@@ -411,7 +384,6 @@ class ClaimDetail:
 
     objects = ClaimDetailManager()
 
-    
     @property
     def itemsvc(self):
         if hasattr(self, "item"):
@@ -421,13 +393,6 @@ class ClaimDetail:
         else:
             raise Exception("ClaimDetail has neither item nor service")
 
-
-    def get_value(self):
-        if self.status != self.STATUS_REJECTED and not self.rejection_reason:
-            qty = self.qty_approved or self.qty_provided or 0
-            price = self.price_approved or self.price_adjusted or self.price_asked or 0
-        return qty * price
-    
     class Meta:
         abstract = True
 
@@ -499,10 +464,8 @@ class GeneralClaimAttachmentType(models.TextChoices):
 
 
 class ClaimAttachmentType(core_models.VersionedModel):
-    id = models.SmallIntegerField(
-        db_column='ClaimAttachmentTypeId', primary_key=True)
-    claim_attachment_type = models.CharField(
-        db_column='ClaimAttachmentType', max_length=50)
+    id = models.SmallIntegerField(db_column='ClaimAttachmentTypeId', primary_key=True)
+    claim_attachment_type = models.CharField(db_column='ClaimAttachmentType', max_length=50)
     is_autogenerated = models.BooleanField(default=False)
     claim_general_type = models.CharField(max_length=10, default=GeneralClaimAttachmentType.FILE,
                                           choices=GeneralClaimAttachmentType.choices)
@@ -596,74 +559,61 @@ class ClaimService(core_models.VersionedModel, ClaimDetail, core_models.Extendab
         managed = True
         db_table = 'tblClaimServices'
 
-
 class ClaimServiceItem(models.Model):
     id = models.AutoField(primary_key=True, db_column='idCsi')
-    item = models.ForeignKey(medical_models.Item, models.DO_NOTHING,
-                             db_column='ItemID', related_name="service_items")
-    claim_service = models.ForeignKey(ClaimService,
-                                      models.DO_NOTHING, db_column="ClaimServiceID", related_name='items')
+    item = models.ForeignKey(medical_models.Item, models.DO_NOTHING, db_column='ItemID', related_name="service_items")                           
+    claim_service = models.ForeignKey( ClaimService,
+                                          models.DO_NOTHING, db_column="ClaimServiceID",related_name='items')
     qty_provided = models.IntegerField(db_column="qty_provided",
-                                       blank=True, null=True)
+                                      blank=True, null=True)
     qty_displayed = models.IntegerField(db_column="qty_displayed",
-                                        blank=True, null=True)
+                                      blank=True, null=True)
     created_date = models.DateTimeField(db_column="created_date", default=django_tz.now,
-                                        blank=True, null=True)
+                                   blank=True, null=True)
     price_asked = models.DecimalField(db_column="price",
-                                      max_digits=18, decimal_places=2, blank=True, null=True)
-
+                                   max_digits=18, decimal_places=2, blank=True, null=True)
+                                   
     class Meta:
         managed = True
         db_table = 'tblClaimServicesItems'
 
-
 class ClaimServiceService(models.Model):
     id = models.AutoField(primary_key=True, db_column='idCss')
     service = models.ForeignKey(medical_models.Service, models.DO_NOTHING,
-                                db_column='ServiceId', related_name='service_services')
-    claim_service = models.ForeignKey(ClaimService,
-                                      models.DO_NOTHING, db_column="claimServiceID", related_name='services')
+                              db_column='ServiceId', related_name='service_services')
+    claim_service = models.ForeignKey( ClaimService,
+                                          models.DO_NOTHING, db_column="claimServiceID", related_name='services')
     qty_provided = models.IntegerField(db_column="qty_provided",
-                                       blank=True, null=True)
+                                      blank=True, null=True)
     qty_displayed = models.IntegerField(db_column="qty_displayed",
-                                        blank=True, null=True)
+                                      blank=True, null=True)
     created_date = models.DateTimeField(db_column="created_date", default=django_tz.now,
-                                        blank=True, null=True)
+                                   blank=True, null=True)
     price_asked = models.DecimalField(db_column="price",
-                                      max_digits=18, decimal_places=2, blank=True, null=True)
-
+                                   max_digits=18, decimal_places=2, blank=True, null=True)
+    
     class Meta:
         managed = True
         db_table = 'tblClaimServicesService'
 
-
 class ClaimDedRem(core_models.VersionedModel):
     id = models.AutoField(db_column='ExpenditureID', primary_key=True)
 
-    policy = models.ForeignKey('policy.Policy', models.DO_NOTHING, db_column='PolicyID', blank=False, null=False,
+    policy = models.ForeignKey('policy.Policy', models.DO_NOTHING, db_column='PolicyID', blank=True, null=True,
                                related_name='claim_ded_rems')
     insuree = models.ForeignKey('insuree.Insuree', models.DO_NOTHING, db_column='InsureeID', blank=True, null=True,
                                 related_name='claim_ded_rems')
     claim = models.ForeignKey(to=Claim, db_column='ClaimID', db_index=True, related_name="dedrems",
                               on_delete=models.DO_NOTHING)
-    ded_g = models.DecimalField(
-        db_column='DedG', max_digits=18, decimal_places=2, blank=True, null=True)
-    ded_op = models.DecimalField(
-        db_column='DedOP', max_digits=18, decimal_places=2, blank=True, null=True)
-    ded_ip = models.DecimalField(
-        db_column='DedIP', max_digits=18, decimal_places=2, blank=True, null=True)
-    rem_g = models.DecimalField(
-        db_column='RemG', max_digits=18, decimal_places=2, blank=True, null=True)
-    rem_op = models.DecimalField(
-        db_column='RemOP', max_digits=18, decimal_places=2, blank=True, null=True)
-    rem_ip = models.DecimalField(
-        db_column='RemIP', max_digits=18, decimal_places=2, blank=True, null=True)
-    rem_consult = models.DecimalField(
-        db_column='RemConsult', max_digits=18, decimal_places=2, blank=True, null=True)
-    rem_surgery = models.DecimalField(
-        db_column='RemSurgery', max_digits=18, decimal_places=2, blank=True, null=True)
-    rem_delivery = models.DecimalField(
-        db_column='RemDelivery', max_digits=18, decimal_places=2, blank=True, null=True)
+    ded_g = models.DecimalField(db_column='DedG', max_digits=18, decimal_places=2, blank=True, null=True)
+    ded_op = models.DecimalField(db_column='DedOP', max_digits=18, decimal_places=2, blank=True, null=True)
+    ded_ip = models.DecimalField(db_column='DedIP', max_digits=18, decimal_places=2, blank=True, null=True)
+    rem_g = models.DecimalField(db_column='RemG', max_digits=18, decimal_places=2, blank=True, null=True)
+    rem_op = models.DecimalField(db_column='RemOP', max_digits=18, decimal_places=2, blank=True, null=True)
+    rem_ip = models.DecimalField(db_column='RemIP', max_digits=18, decimal_places=2, blank=True, null=True)
+    rem_consult = models.DecimalField(db_column='RemConsult', max_digits=18, decimal_places=2, blank=True, null=True)
+    rem_surgery = models.DecimalField(db_column='RemSurgery', max_digits=18, decimal_places=2, blank=True, null=True)
+    rem_delivery = models.DecimalField(db_column='RemDelivery', max_digits=18, decimal_places=2, blank=True, null=True)
     rem_hospitalization = models.DecimalField(db_column='RemHospitalization', max_digits=18, decimal_places=2,
                                               blank=True, null=True)
     rem_antenatal = models.DecimalField(db_column='RemAntenatal', max_digits=18, decimal_places=2,
@@ -674,3 +624,25 @@ class ClaimDedRem(core_models.VersionedModel):
     class Meta:
         managed = True
         db_table = 'tblClaimDedRem'
+
+
+#AUTOGENERATE CLAIM NUMBER
+
+class ClaimNumber(models.Model):
+    code = models.CharField(db_column='ClaimCode', max_length=50)
+
+    @staticmethod
+    def generate_claim_code():
+        last_code = Claim.objects.all().order_by('id').last()
+        
+        if not last_code:
+             return hf_code +'CL' + '000001'
+        claim_code = last_code.code
+        code_int = int(claim_code[2:]) + np.random.randint(1,500)
+        new_claim_code = 'CL' + str(code_int).zfill(8)
+        return new_claim_code
+
+    def save(self, *args, **kwargs):
+        if not self.claim_code:
+            self.claim_code = self.generate_claim_code()
+        super(Claim, self).save(*args, **kwargs)

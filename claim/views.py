@@ -12,7 +12,8 @@ from .apps import ClaimConfig
 from .models import ClaimAttachment
 from django.utils.translation import gettext as _
 import core
-
+from django.http import JsonResponse
+from .models import ClaimNumber
 
 @api_view(['GET'])
 def print(request):
@@ -61,3 +62,9 @@ def attach(request):
     else:
         response.write(base64.b64decode(attachment.document))
     return response
+
+
+#GENERATE CLAIM NUMBER
+def get_new_claim_code(request):
+    new_claim_code = ClaimNumber.generate_claim_code()
+    return JsonResponse({"new_claim_code": new_claim_code})

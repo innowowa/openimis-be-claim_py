@@ -1,88 +1,40 @@
 from claim.models import Claim, ClaimService, ClaimItem, ClaimDedRem, ClaimAdmin
-from claim.validations import get_claim_category
-from claim.utils import approved_amount
+from claim.validations import get_claim_category, approved_amount
 from claim.services import claim_create, update_sum_claims
-from medical.test_helpers import get_item_of_type, get_service_of_category, create_test_diagnosis
+from medical.test_helpers import get_item_of_type, get_service_of_category
 from uuid import uuid4
-from location.models import HealthFacility, Location
-from product.models import ProductItem, ProductService, ProductItemOrService, Product
-from product.test_helpers import create_test_product_service, create_test_product_item, create_test_product
-from medical_pricelist.test_helpers import add_service_to_hf_pricelist, add_item_to_hf_pricelist
-from insuree.test_helpers import create_test_insuree
-from policy.test_helpers import create_test_policy2
-from insuree.models import Insuree
-from location.test_helpers import create_test_health_facility
-from medical.test_helpers import create_test_item, create_test_service
-from medical_pricelist.test_helpers import (
-    create_test_item_pricelist,
-    create_test_service_pricelist,
-    add_service_to_hf_pricelist,
-    add_item_to_hf_pricelist,
-)
 
 class DummyUser:
     def __init__(self):
-      self.id_for_audit = 1
-      self.id = 1
+      self.id_for_audit = 1  
 
-def create_test_claim(custom_props=None, user=DummyUser(), product=None):
-    if custom_props is None:
-        custom_props = {}
-    else:
-        custom_props = {k: v for k, v in custom_props.items() if hasattr(Claim, k)} 
-    from datetime import datetime, timedelta
-    insuree = None
-    if 'insuree' in custom_props:
-        insuree = custom_props['insuree']
-    elif 'insuree_id' in custom_props:
-        insuree = Insuree.objects.filter(id=custom_props['insuree_id']).first()
-    else:
-        insuree = create_test_insuree()
-        custom_props["insuree"] = insuree
-        
-    _to = datetime.now() - timedelta(days=1)
-    if product:
-        create_test_policy2(product, insuree)
-    
-    if 'icd' not in custom_props and 'icd_id' not in custom_props:
-        custom_props['icd'] = create_test_diagnosis()
-    elif 'icd' in custom_props and isinstance(custom_props['icd'], dict):
-        custom_props['icd'] = create_test_diagnosis(
-            custom_props=custom_props['icd']
-        )
-    claim = claim_create(
+def create_test_claim(custom_props={}, user = DummyUser() ):
+    from core import datetime
+    if 'insuree' not in custom_props and 'insuree_id' not in custom_props:
+        custom_props["insuree_id"]= 2
+
+    return claim_create(
         {
             "health_facility_id": 18,
-            "date_from": datetime.now() - timedelta(days=2),
-            "date_claimed": _to,
-            "date_to": None,
+            "icd_id": 116,
+            "date_from": datetime.datetime(2019, 6, 1),
+            "date_claimed": datetime.datetime(2019, 6, 1),
+            "date_to": datetime.datetime(2019, 6, 1),
             "status": 2,
-            "validity_from": _to,
-            "code": str(uuid4()),
+            "validity_from": datetime.datetime(2019, 6, 1),
+            "code":  str(uuid4()),
             **custom_props
         }, user
     )
 
-    return claim
 
-
-def create_test_claimitem(claim, item_type='D', valid=True, custom_props=None, product=None):
-    if custom_props is None:
-        custom_props = {}
-    item = None
-    if 'item' not in custom_props and 'item_id' not in custom_props:
-        if item_type:
-            item = get_item_of_type(item_type)
-        if not item:
-            item = create_test_item(item_type, custom_props=custom_props)
-        custom_props['item'] = item
-    
-    custom_props = {k: v for k, v in custom_props.items() if hasattr(ClaimItem, k)} 
-    item = ClaimItem.objects.create(
+def create_test_claimitem(claim, item_type, valid=True, custom_props={}):
+    item =  ClaimItem.objects.create(
         **{
             "claim": claim,
             "qty_provided": 7,
             "price_asked": 11,
+            "item_id": get_item_of_type(item_type).id if item_type else 23,  # Atropine
             "status": 1,
             "availability": True,
             "validity_from": "2019-06-01",
@@ -92,37 +44,17 @@ def create_test_claimitem(claim, item_type='D', valid=True, custom_props=None, p
            }
     )
     update_sum_claims(claim)
-    if product:
-        product_item = create_test_product_item(
-            product,
-            item.item,
-            custom_props={"price_origin": ProductItemOrService.ORIGIN_RELATIVE},
-        )
-        pricelist_detail = add_item_to_hf_pricelist(
-            item.item,
-            hf_id=claim.health_facility.id
-        )
     return item
 
 
 
-def create_test_claimservice(claim, category='V', valid=True, custom_props=None, product=None):
-    if custom_props is None:
-        custom_props = {}
-    service = None
-    if 'service' not in custom_props and 'service_id' not in custom_props:
-        if category:
-            service = get_service_of_category(category)
-        if not service:
-            service = create_test_service(category, custom_props=custom_props)
-        custom_props['service'] = service
-    
-    custom_props = {k: v for k, v in custom_props.items() if hasattr(ClaimService, k)}
-    service = ClaimService.objects.create(
+def create_test_claimservice(claim, category=None, valid=True, custom_props={}):
+    service =  ClaimService.objects.create(
         **{
             "claim": claim,
             "qty_provided": 7,
             "price_asked": 11,
+            "service_id": get_service_of_category(category).id if category else 23,  # Skin graft, no cat
             "status": 1,
             "validity_from": "2019-06-01",
             "validity_to": None if valid else "2019-06-01",
@@ -131,16 +63,6 @@ def create_test_claimservice(claim, category='V', valid=True, custom_props=None,
         }
     )    
     update_sum_claims(claim)
-    if product:
-        create_test_product_service(
-            product,
-            service.service,
-            custom_props={"price_origin": ProductItemOrService.ORIGIN_RELATIVE},
-        )
-        add_service_to_hf_pricelist(
-            service.service,
-            hf_id=claim.health_facility.id
-        )
     return service
 
 
@@ -167,16 +89,10 @@ def delete_claim_with_itemsvc_dedrem_and_history(claim):
     claim.delete()
 
 
-def create_test_claim_admin(custom_props=None):
-    if custom_props is None:
-        custom_props = {}
+def create_test_claim_admin(custom_props={}):
     from core import datetime
-    custom_props = {k: v for k, v in custom_props.items() if hasattr(ClaimAdmin, k)}
-    if "health_facility_id" not in custom_props and "health_facility_id" not in custom_props:
-        custom_props['health_facility'] = create_test_health_facility(code=None, location_id=None)
-
-    code = custom_props.pop('code', 'TST-CA')
-    uuid = custom_props.pop('uuid', uuid4())
+    code = custom_props.pop('code','TST-CA')
+    uuid = custom_props.pop('uuid',None)
     ca = None
     qs_ca = ClaimAdmin.objects
     data = {
@@ -186,6 +102,7 @@ def create_test_claim_admin(custom_props=None):
         "other_names": "JoeAdmin",
         "email_id": "joeadmin@lastadmin.com",
         "phone": "+12027621401",
+        "health_facility_id": 1,
         "has_login": False,
         "audit_user_id": 1,
         "validity_from": datetime.datetime(2019, 6, 1),
@@ -199,125 +116,9 @@ def create_test_claim_admin(custom_props=None):
     if code or uuid:
         ca = qs_ca.first()
     if ca:
-        data['uuid'] = ca.uuid
-        ca.objects.update(**data)
+        data['uuid']=ca.uuid
+        ca.update(data)
         return ca
     else:
-        return ClaimAdmin.objects.create(**data)
-
-
-
-def create_test_claim_context(claim=None, claim_admin=None, insuree=None, product=None, hf=None, items=None, services=None):
-    if claim is None:
-        claim = {}
-    if claim_admin is None:
-        claim_admin = {}
-    if insuree is None:
-        insuree = {}
-    if product is None:
-        product = {}
-    if hf is None:
-        hf = {}
-    if items is None:
-        items = []
-    if services is None:
-        services = []
-        
-    if claim and isinstance(claim, Claim):
-        if claim.insuree:
-            insuree = claim.insuree
-        if claim.health_facility:
-            hf = claim.health_facility
-    if isinstance(insuree, dict):
-        prop = insuree if isinstance(insuree, dict) else {}
-        insuree = create_test_insuree(
-            with_family=True, 
-            is_head=True, 
-            custom_props=prop)
-    
-    if not isinstance(hf, HealthFacility):
-        hf_props = hf if isinstance(hf, dict) else {}
-        code = hf_props['code'] if 'code' in hf_props else 'HFH'
-        if 'location_id' in hf_props and hf_props['location_id']:
-            location_id = hf_props['location_id']
-        elif 'location' in hf_props and hf_props['location'] and isinstance(hf['location'], Location):
-            location_id = hf_props['location'].id
-        else:
-            location_id = insuree.current_village.id or insuree.family.location.id
-        hf = create_test_health_facility(code, location_id, custom_props={})
-        product_code = product['code'] if isinstance(product, dict) and 'code' in product else 'TPDT'
-        if not isinstance(product, Product):
-            product = create_test_product(product_code, custom_props=product)
-    
-    if insuree and product:
-        policy, insuree_policy = create_test_policy2(product, insuree)
-    else:
-        raise Exception("insuree or product not created")
-    
-    claim_admin_props = claim_admin if isinstance(claim_admin, dict) else {}
-    claim_admin_props['health_facility_id'] = hf.id
-    if not isinstance(claim_admin, ClaimAdmin):
-        claim_admin = create_test_claim_admin(
-            custom_props=claim_admin_props
-        )
-    if not isinstance(claim, Claim):
-        claim_props = claim if isinstance(claim, dict) else {}
-        claim_props['insuree'] = insuree
-        claim_props['health_facility_id'] = hf.id
-        claim_props['admin'] = claim_admin
-        claim = create_test_claim(custom_props=claim_props)
-    if isinstance(claim, object):
-        if not items:
-            items = list(claim.items.all())
-        if not services:
-            services = list(claim.services.all())        
-    items_source = None   
-    if all([isinstance(i, dict) for i in items]):
-        items_source = items.copy()
-        items = []
-        for item in items_source:
-            if isinstance(item, dict):
-                item_type = item.pop('type', 'V')
-                it = create_test_item(item_type, custom_props=item)
-                items.append(it)
-    for item in items:
-        custom_props = items_source.pop(0) if items_source else {}
-        create_test_product_item(
-            product,
-            item,
-            custom_props=custom_props if isinstance(custom_props, dict) else {}
-        )
-        if items_source is not None:
-            custom_props['item']=item
-            create_test_claimitem(
-                claim=claim,
-                custom_props=custom_props
-            )
-    services_source = None
-    if all([isinstance(s, dict) for s in services]):
-        services_source = services.copy() 
-        services = []
-        for service in services_source:  
-            if isinstance(service, dict):
-                service_type = service.pop('type', 'V')
-                it = create_test_service(service_type, custom_props=service)
-            services.append(it)
-    for service in services:
-        custom_props = services_source.pop(0) if services_source else {}
-        create_test_product_service(
-            product, service, 
-            custom_props=custom_props
-        )
-        if services_source is not None:
-            custom_props['service']=service
-            create_test_claimservice(
-                claim=claim,
-                custom_props=custom_props
-            )
-    return claim, insuree, policy, hf
-
-
-def full_delete_claim(claim_id):
-    ClaimItem.objects.filter(claim_id=claim_id).delete()
-    ClaimService.objects.filter(claim_id=claim_id).delete()
-    Claim.objects.filter(id=claim_id).delete()
+        data['uuid']=uuid4()
+        return ClaimAdmin.objects.create( **data)

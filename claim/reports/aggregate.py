@@ -7426,9 +7426,8 @@ def generate_claim_detail(element: Union[ClaimItem, ClaimService],
                           claim_data: Dict,
                           price_approved: Decimal,
                           element_type: str) -> Dict:
-    element_name = element.item.nadme if element_type == CLAIM_ELEMENT_TYPE_ITEM else element.service.name
+    element_name = element.item.name if element_type == CLAIM_ELEMENT_TYPE_ITEM else element.service.name
     element_code = element.item.code if element_type == CLAIM_ELEMENT_TYPE_ITEM else element.service.code
-
 
     claim_detail = {
         **claim_data,
@@ -7445,14 +7444,6 @@ def generate_claim_detail(element: Union[ClaimItem, ClaimService],
         "e_name": element_name,
         "e_code": element_code,
         "e_type": element_type,
-
-        "c_health_facility_code": element.claim.health_facility.code,
-        "c_health_facility_name": element.claim.health_facility.name,
-        "c_code": element.claim.code,
-        "c_insuree_nbr": element.claim.insuree.chf_id,
-        "c_insuree_gender": str(element.claim.insuree.gender.gender),
-        "c_insuree_dob": str(element.claim.insuree.dob),
-        "c_insuree_caretype": str(element.claim.care_type),
 
     }
 
@@ -7578,88 +7569,13 @@ def claims_overview_query(user,
     total_approved = Decimal(0.0)
     total_adjusted = Decimal(0.0)
     total_paid = Decimal(0.0)
-    # AGGREGATE SUMMATIONS FOR THE CLAIMS
-    total_A_services_value = Decimal(0.0) #A = ADULT
-    total_B_services_value = Decimal(0.0) #B = PAED 6 -12
-    total_C_services_value = Decimal(0.0) #B = UNDER 5
-    total_D_services_value = Decimal(0.0) #B = MNH
-    total_E_services_value = Decimal(0.0) #B = SURGICAL
-    total_LAB_services_value = Decimal(0.0) #B = LAB 
-
-    total_A_OPD_services_value = Decimal(0.0)
-    total_B_OPD_services_value = Decimal(0.0)
-    total_C_OPD_services_value = Decimal(0.0)
-    total_D_OPD_services_value = Decimal(0.0)
-    total_E_OPD_services_value = Decimal(0.0)
-    total_LAB_OPD_services_value = Decimal(0.0)
-    total_OPD = Decimal(0.0)
-
-    total_A_IPD_services_value = Decimal(0.0)
-    total_B_IPD_services_value = Decimal(0.0)
-    total_C_IPD_services_value = Decimal(0.0)
-    total_D_IPD_services_value = Decimal(0.0)
-    total_E_IPD_services_value = Decimal(0.0)
-    total_LAB_IPD_services_value = Decimal(0.0)
-    total_IPD = Decimal(0.0)
-
-    total_A_REF_services_value = Decimal(0.0)
-    total_B_REF_services_value = Decimal(0.0)
-    total_C_REF_services_value = Decimal(0.0)
-    total_D_REF_services_value = Decimal(0.0)
-    total_E_REF_services_value = Decimal(0.0)
-    total_LAB_REF_services_value = Decimal(0.0)
-    total_REF = Decimal(0.0)
-
-    total_LAB_MBTS_services_value = Decimal(0.0)
-    total_LAB_NOMBTS_services_value = Decimal(0.0)
-
-
-
-
-    # NUMBER OF CLAIMS FOR AGGRAGATES
-    count_A_services = 0
-    count_B_services = 0
-    count_C_services = 0
-    count_D_services = 0
-    count_E_services = 0
-    count_LAB_services = 0
-    count_claims = 0
-
-    count_A_OPD_services = 0
-    count_B_OPD_services = 0
-    count_C_OPD_services = 0
-    count_D_OPD_services = 0
-    count_E_OPD_services = 0
-    count_LAB_OPD_services = 0 
-    count_OPD = 0
-   
-    
-    count_A_IPD_services = 0
-    count_B_IPD_services = 0
-    count_C_IPD_services = 0
-    count_D_IPD_services = 0
-    count_E_IPD_services = 0
-    count_LAB_IPD_services = 0
-    count_IPD = 0
-
-    count_A_REF_services = 0
-    count_B_REF_services = 0
-    count_C_REF_services = 0
-    count_D_REF_services = 0
-    count_E_REF_services = 0
-    count_LAB_REF_services = 0
-    count_REF = 0
-
-    count_LAB_MBTS_services = 0
-    count_LAB_NOMBTS_services = 0
-    
     data = []
 
     for claim in claim_queryset:
         new_data_claim = {
-            # "c_code": claim.code,
+            "c_code": claim.code,
             "c_date_claimed": claim.date_claimed,
-            # "c_insuree_nbr": claim.insuree.chf_id,
+            "c_insuree_nbr": claim.insuree.chf_id,
             "c_insuree_name": claim.insuree.last_name,
             "c_insuree_other_names": claim.insuree.other_names,
             "c_status": claim.status,
@@ -7667,20 +7583,17 @@ def claims_overview_query(user,
             "c_date_to": claim.date_to,
             "c_claimed": claim.claimed,
             # Gender,Age, Caretype added
-            # "c_insuree_gender": str(claim.insuree.gender.gender),
-            # "c_insuree_dob": str(claim.insuree.dob),
-            # "c_insuree_caretype": str(claim.care_type),
-            # "c_test":str(claim.care_type),
+            "c_insuree_gender": str(claim.insuree.gender.gender),
+            "c_insuree_dob": str(claim.insuree.dob),
+            "c_insuree_caretype": str(claim.care_type),
             # gender closed
             "c_approved": claim.approved,
             "c_valuated": claim.valuated,
             "c_paid": claim.remunerated,
-            # "c_health_facility_code": claim.health_facility.code,
-            # "c_health_facility_name": claim.health_facility.name,
+            "c_health_facility_code": claim.health_facility.code,
+            "c_health_facility_name": claim.health_facility.name,
             "c_admin_name": claim.admin.last_name,
             "c_admin_other_names": claim.admin.other_names,
-            "c_refer_to": str(claim.refer_to),
-            
         }
 
         if claim.claimed:
@@ -7689,9 +7602,6 @@ def claims_overview_query(user,
             total_approved += claim.approved
         if claim.valuated:
             total_adjusted += claim.valuated
-
-        # if claim.services == 'OPD':
-        #     total_opd += 1
 
         for item in claim.items.order_by("item__code"):
 
@@ -7703,187 +7613,24 @@ def claims_overview_query(user,
 
             if item.remunerated_amount:
                 total_paid += item.remunerated_amount
-        # TEST MNH SERVICES 
+
         for service in claim.services.order_by("service__code"):
-            
+
             price_approved = coalesce_amounts(service.price_approved, service.price_asked) \
                              * coalesce_amounts(service.qty_approved, service.qty_provided)
 
             claim_element = generate_claim_detail(service, new_data_claim, price_approved, CLAIM_ELEMENT_TYPE_SERVICE)
             data.append(claim_element)
 
-            # COUNT OF GENERAL CLAIMS
-            if claim.approved:
-                count_claims += 1
-
             if service.remunerated_amount:
                 total_paid += service.remunerated_amount
 
-            if claim.care_type == "IPD" and claim.approved:
-                total_IPD += price_approved
-                count_IPD +=1
-            if claim.care_type == "OPD" and claim.approved:
-                total_OPD += price_approved
-                count_OPD +=1
-            if claim.refer_to is not None and claim.approved:
-                total_REF += price_approved
-                count_REF +=1
-
-            # FETCH BY CODE
-            if service.service.code.startswith("A") and claim.approved:
-                total_A_services_value += price_approved
-                count_A_services += 1
-                if claim.care_type == "OPD":
-                    total_A_OPD_services_value += price_approved
-                    count_A_OPD_services += 1
-                if claim.care_type == "IPD":
-                    total_A_IPD_services_value += price_approved
-                    count_A_IPD_services += 1
-                if claim.refer_to is not None:
-                    total_A_REF_services_value += price_approved
-                    count_A_REF_services += 1
-                
-            if service.service.code.startswith("B") and claim.approved:
-                total_B_services_value += price_approved
-                count_B_services += 1
-                if claim.care_type == "OPD":
-                    total_B_OPD_services_value += price_approved
-                    count_B_OPD_services += 1
-                if claim.care_type == "IPD":
-                    total_B_IPD_services_value += price_approved
-                    count_B_IPD_services += 1
-                if claim.refer_to is not None:
-                    total_B_REF_services_value += price_approved
-                    count_B_REF_services += 1
-            
-            if service.service.code.startswith("C") and claim.approved:
-                total_C_services_value += price_approved
-                count_C_services += 1
-                if claim.care_type == "OPD":
-                    total_C_OPD_services_value += price_approved
-                    count_C_OPD_services += 1
-                if claim.care_type == "IPD":
-                    total_C_IPD_services_value += price_approved
-                    count_C_IPD_services += 1
-                if claim.refer_to is not None:
-                    total_C_REF_services_value += price_approved
-                    count_C_REF_services += 1
-            if service.service.code.startswith("D") and claim.approved:
-                total_D_services_value += price_approved
-                count_D_services += 1
-                if claim.care_type == "OPD":
-                    total_D_OPD_services_value += price_approved
-                    count_D_OPD_services += 1
-                if claim.care_type == "IPD":
-                    total_D_IPD_services_value += price_approved
-                    count_D_IPD_services += 1
-                if claim.refer_to is not None:
-                    total_D_REF_services_value += price_approved
-                    count_D_REF_services += 1
-            if service.service.code.startswith("E") and claim.approved:
-                total_E_services_value += price_approved
-                count_E_services += 1
-                if claim.care_type == "OPD":
-                    total_E_OPD_services_value += price_approved
-                    count_E_OPD_services += 1
-                if claim.care_type == "IPD":
-                    total_E_IPD_services_value += price_approved
-                    count_E_IPD_services += 1
-                if claim.refer_to is not None:
-                    total_E_REF_services_value += price_approved
-                    count_E_REF_services += 1
-            if service.service.code.startswith("LAB") and claim.approved:
-                total_LAB_services_value += price_approved
-                count_LAB_services += 1
-                if claim.care_type == "OPD":
-                    total_LAB_OPD_services_value += price_approved
-                    count_LAB_OPD_services += 1
-                if claim.care_type == "IPD":
-                    total_LAB_IPD_services_value += price_approved
-                    count_LAB_IPD_services += 1
-                if claim.refer_to is not None:
-                    total_LAB_REF_services_value += price_approved
-                    count_LAB_REF_services += 1
-                if service.service.code =='LAB07':
-                    total_LAB_MBTS_services_value += price_approved
-                    count_LAB_MBTS_services += 1
-                if service.service.code =='LAB08':
-                    total_LAB_NOMBTS_services_value += price_approved
-                    count_LAB_NOMBTS_services += 1
-            
-            # 
-
     footer = {
-        # "total_claims": len(claim_queryset),
-        "total_claims": str(count_claims),
-        "total_claimed": total_approved,
+        "total_claims": len(claim_queryset),
+        "total_claimed": total_claimed,
         "total_approved": total_approved,
         "total_adjusted": total_adjusted,
         "total_paid": total_paid,
-        
-        "total_A_services_value": str(total_A_services_value),
-        "count_A_services": str(count_A_services),
-        "total_B_services_value": str(total_B_services_value),
-        "count_B_services": str(count_B_services),
-        "total_C_services_value": str(total_C_services_value),
-        "count_C_services": str(count_C_services),
-        "total_D_services_value": str(total_D_services_value),
-        "count_D_services": str(count_D_services),
-        "total_E_services_value": str(total_E_services_value),
-        "count_E_services": str(count_E_services),
-        "total_LAB_services_value": str(total_LAB_services_value),
-        "count_LAB_services": str(count_LAB_services),
-
-        "total_A_OPD_services_value": str(total_A_OPD_services_value),
-        "count_A_OPD_services": str(count_A_OPD_services),
-        "total_B_OPD_services_value": str(total_B_OPD_services_value),
-        "count_B_OPD_services": str(count_B_OPD_services),
-        "total_C_OPD_services_value": str(total_C_OPD_services_value),
-        "count_C_OPD_services": str(count_C_OPD_services),
-        "total_D_OPD_services_value": str(total_D_OPD_services_value),
-        "count_D_OPD_services": str(count_D_OPD_services),
-        "total_E_OPD_services_value": str(total_E_OPD_services_value),
-        "count_E_OPD_services": str(count_E_OPD_services),
-        "total_LAB_OPD_services_value": str(total_LAB_OPD_services_value),
-        "count_LAB_OPD_services": str(count_LAB_OPD_services),
-        "total_OPD": str(total_OPD),
-        "count_OPD": str(count_OPD),
-
-        "total_A_IPD_services_value": str(total_A_IPD_services_value),
-        "count_A_IPD_services": str(count_A_IPD_services),
-        "total_B_IPD_services_value": str(total_B_IPD_services_value),
-        "count_B_IPD_services": str(count_B_IPD_services),
-        "total_C_IPD_services_value": str(total_C_IPD_services_value),
-        "count_C_IPD_services": str(count_C_IPD_services),
-        "total_D_IPD_services_value": str(total_D_IPD_services_value),
-        "count_D_IPD_services": str(count_D_IPD_services),
-        "total_E_IPD_services_value": str(total_E_IPD_services_value),
-        "count_E_IPD_services": str(count_E_IPD_services),
-        "total_LAB_IPD_services_value": str(total_LAB_IPD_services_value),
-        "count_LAB_IPD_services": str(count_LAB_IPD_services),
-        "total_IPD": str(total_IPD),
-        "count_IPD": str(count_IPD),
-
-        "total_A_REF_services_value": str(total_A_REF_services_value),
-        "count_A_REF_services": str(count_A_REF_services),
-        "total_B_REF_services_value": str(total_B_REF_services_value),
-        "count_B_REF_services": str(count_B_REF_services),
-        "total_C_REF_services_value": str(total_C_REF_services_value),
-        "count_C_REF_services": str(count_C_REF_services),
-        "total_D_REF_services_value": str(total_D_REF_services_value),
-        "count_D_REF_services": str(count_D_REF_services),
-        "total_E_REF_services_value": str(total_E_REF_services_value),
-        "count_E_REF_services": str(count_E_REF_services),
-        "total_LAB_REF_services_value": str(total_LAB_REF_services_value),
-        "count_LAB_REF_services": str(count_LAB_REF_services),
-        "total_REF": str(total_REF),
-        "count_REF": str(count_REF),
-
-        "total_LAB_MBTS_services_value": str(total_LAB_MBTS_services_value),
-        "count_LAB_MBTS_services": str(count_LAB_MBTS_services),
-        "total_LAB_NOMBTS_services_value": str(total_LAB_NOMBTS_services_value),
-        "count_LAB_NOMBTS_services": str(count_LAB_NOMBTS_services),
-
     }
 
     return {
