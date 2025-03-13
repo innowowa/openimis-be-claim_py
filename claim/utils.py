@@ -187,6 +187,17 @@ def __get_current_nepali_fiscal_year_code():
     year_code = str(current_year) + "-" + str(current_year + 1)[-3:] + "-"
     return year_code
 
+def get_valid_policies_qs(insuree_id, target_date):
+    return Policy.objects.filter(
+        insuree_policies__insuree_id=insuree_id,
+        *filter_validity(validity=target_date),
+        *filter_validity(validity=target_date, prefix='insuree_policies__'),
+        effective_date__lte=target_date, 
+        expiry_date__gte=target_date,
+        status__in=[Policy.STATUS_ACTIVE, Policy.STATUS_EXPIRED],
+        insuree_policies__effective_date__lte=target_date, 
+        insuree_policies__expiry_date__gte=target_date,
+    )
 
 # def get_queryset_valid_at_date(queryset, date):
 #     filtered_qs = queryset.filter(
